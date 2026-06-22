@@ -390,7 +390,12 @@ query_cb(struct smb2_context *smb2, int status,
                 req.file_information_class = SMB2_FILE_ID_FULL_DIRECTORY_INFORMATION;
                 req.flags = 0;
                 memcpy(req.file_id, dir->file_id, SMB2_FD_SIZE);
-                req.output_buffer_length = DEFAULT_OUTPUT_BUFFER_LENGTH;
+                /* FinePlayer fork: request up to the negotiated max transact size
+                 * (capped at 1MB), gated on multi-credit so SMB 2.0.2 falls back to 64KB. */
+                req.output_buffer_length =
+                        (smb2->supports_multi_credit && smb2->max_transact_size > DEFAULT_OUTPUT_BUFFER_LENGTH)
+                        ? (smb2->max_transact_size < 0x100000 ? smb2->max_transact_size : 0x100000)
+                        : DEFAULT_OUTPUT_BUFFER_LENGTH;
                 req.name = "*";
 
                 pdu = smb2_cmd_query_directory_async(smb2, &req, query_cb, dir);
@@ -454,7 +459,12 @@ opendir_cb(struct smb2_context *smb2, int status,
         req.file_information_class = SMB2_FILE_ID_FULL_DIRECTORY_INFORMATION;
         req.flags = 0;
         memcpy(req.file_id, dir->file_id, SMB2_FD_SIZE);
-        req.output_buffer_length = DEFAULT_OUTPUT_BUFFER_LENGTH;
+        /* FinePlayer fork: request up to the negotiated max transact size
+         * (capped at 1MB), gated on multi-credit so SMB 2.0.2 falls back to 64KB. */
+        req.output_buffer_length =
+                (smb2->supports_multi_credit && smb2->max_transact_size > DEFAULT_OUTPUT_BUFFER_LENGTH)
+                ? (smb2->max_transact_size < 0x100000 ? smb2->max_transact_size : 0x100000)
+                : DEFAULT_OUTPUT_BUFFER_LENGTH;
         req.name = "*";
 
         pdu = smb2_cmd_query_directory_async(smb2, &req, query_cb, dir);
